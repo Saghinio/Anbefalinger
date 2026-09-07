@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Min katalog</title>
+<style>
+  :root{
+    --bg:#F3F4FA;
+    --surface:#FFFFFF;
+    --surface-alt:#F6F7FB;
+    --border: rgba(20,20,45,0.09);
+    --ink:#1C1F2A;
+    --ink-soft:#6B7080;
+    --ink-faint:#9AA0B0;
+
+    --c-books:#B5495B;      --c-books-soft:#FBE9EC;
+    --c-movies:#1F8A82;     --c-movies-soft:#E3F5F2;
+    --c-series:#D69A2D;     --c-series-soft:#FBF0DA;
+    --c-games:#4C8A4A;      --c-games-soft:#E7F4E5;
+    --c-activities:#8B5FA6; --c-activities-soft:#F1E7F6;
+    --c-prefs:#3E6FBF;      --c-prefs-soft:#E6EEFB;
+    --c-recs:#C77B2E;       --c-recs-soft:#FBEBDA;
+
+    --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Segoe UI', Helvetica, Arial, sans-serif;
+    --serif: var(--sans);
+    --mono: ui-monospace, 'SFMono-Regular', Consolas, 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--bg);
+    background-image:
+      radial-gradient(60% 50% at 8% -5%, rgba(255,120,150,0.16), transparent 60%),
+      radial-gradient(55% 45% at 95% 8%, rgba(80,150,255,0.14), transparent 60%),
+      radial-gradient(50% 40% at 50% 100%, rgba(255,190,80,0.14), transparent 60%);
+    background-attachment: fixed;
+    min-height:100vh;
+    padding: 32px 16px 60px;
+  }
+  .wrap{ max-width: 820px; margin: 0 auto; }
+
+  header.top{
+    padding: 4px 6px 22px;
+    margin-bottom: 6px;
+  }
+  header.top h1{
+    color: var(--ink);
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+  }
+  header.top p{
+    color: var(--ink-soft);
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    margin: 0;
+  }
+
+  .search-row{
+    margin-top: 16px;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    max-width: 440px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 10px 10px 16px;
+    box-shadow: 0 2px 10px rgba(30,30,60,0.05);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .search-row:focus-within{
+    border-color: rgba(80,120,255,0.4);
+    box-shadow: 0 4px 18px rgba(80,120,255,0.12);
+  }
+  .search-row input{
+    flex:1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 0.94rem;
+  }
+  .search-row input::placeholder{ color: var(--ink-faint); }
+  .search-row button{
+    border:none; background:none; cursor:pointer;
+    color: var(--ink-faint); font-size: 0.9rem;
+    padding: 2px 6px; border-radius: 50%;
+    display:none;
+  }
+  .search-row button:hover{ color: var(--ink); }
+  .search-row.has-query button{ display:inline-block; }
+
+  .sync-status{
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    margin: 10px 0 0;
+  }
+  .sync-status.sync-error{ color: #C0463A; }
+
+  .tabs{
+    display:flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 5px;
+    background: rgba(20,20,45,0.05);
+    border-radius: 16px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 480px){
+    .tabs{ flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar{ display:none; }
+    .tab{ flex: 0 0 auto; }
+  }
+  .tab{
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--ink-soft);
+    background: none;
+    border: none;
+    border-radius: 11px;
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    display:flex; align-items:center; gap:6px;
+    white-space: nowrap;
+  }
+  .tab:hover{ color: var(--ink); }
+  .tab.active{
+    background: var(--surface);
+    color: var(--tab-accent, var(--ink));
+    box-shadow: 0 2px 8px rgba(20,20,45,0.10);
+  }
+
+  .panel{
+    background: var(--surface);
+    border-radius: 22px;
+    padding: 28px 26px 14px;
+    box-shadow: 0 10px 34px rgba(30,30,60,0.08), 0 1px 2px rgba(30,30,60,0.05);
+    position: relative;
+    min-height: 260px;
+  }
+  .panel-inner{ padding-left: 0; }
+
+  .toolbar{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar .view-toggle{
+    display:flex;
+    background: var(--surface-alt);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+  .toolbar .view-toggle button{
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    border: none;
+    background: none;
+    color: var(--ink-soft);
+    padding: 6px 11px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .toolbar .view-toggle button.active{
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 1px 4px rgba(30,30,60,0.12);
+  }
+  .toolbar select.sort-select{
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    border: 1px solid var(--border);
+    background: var(--surface-alt);
+    color: var(--ink-soft);
+    padding: 6px 10px;
+    border-radius: 8px;
+  }
+
+  section.block{ margin-bottom: 28px; }
+  section.block h2{
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--accent, var(--ink));
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  section.block h2 .count{
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--ink-faint);
+    font-weight: normal;
+  }
+  .subhint{
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    margin: -8px 0 14px;
+  }
+
+  .empty{
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    padding: 4px 0 10px;
+  }
+
+  ul.items{ list-style:none; margin:0; padding:0; }
+  ul.items li{
+    padding: 10px 4px 10px 0;
+    border-bottom: 1px solid var(--border);
+    display:flex;
+    gap: 10px;
+    align-items:flex-start;
+  }
+  ul.items li:last-child{ border-bottom:none; }
+  .item-main{ flex:1; min-width:0; }
+  .item-title{ font-size: 0.96rem; font-weight: 500; }
+  .item-title .extra{ color: var(--ink-soft); font-weight: 400; font-style: italic; }
+  .item-note{ color: var(--ink-soft); font-size: 0.86rem; margin-top: 3px; }
+  .item-meta{
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    display:flex; gap: 10px; flex-wrap: wrap;
+    align-items:center;
+  }
+  .badge{
+    display:inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--accent-soft, #eee);
+    color: var(--accent, #333);
+  }
+  .del-btn{
+    border:none; background:none; cursor:pointer;
+    color: var(--ink-faint); font-size: 1rem; line-height:1;
+    padding: 2px 4px; opacity: 0.7;
+  }
+  .del-btn:hover{ opacity: 1; color:#C0463A; }
+  .mark-btn{
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    font-weight: 500;
+    border: 1px solid var(--accent, #999);
+    color: var(--accent, #333);
+    background: var(--accent-soft, #eee);
+    padding: 5px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .mark-btn:hover{ filter: brightness(0.96); transform: translateY(-1px); }
+  .mark-row{ display:flex; gap:6px; margin-top:6px; }
+
+  .add-link{
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    font-weight: 500;
+    background: var(--surface-alt);
+    border: 1px dashed var(--border);
+    color: var(--ink-soft);
+    padding: 7px 14px;
+    border-radius: 10px;
+    cursor:pointer;
+    margin-top: 8px;
+  }
+  .add-link:hover{ border-color: var(--accent, #333); color: var(--accent, #333); }
+
+  form.add-form{
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--surface-alt);
+    border-radius: 12px;
+    display:grid;
+    gap: 9px;
+  }
+  form.add-form .row{ display:flex; gap:8px; flex-wrap:wrap; }
+  form.add-form input[type="text"], form.add-form input[type="date"], form.add-form textarea, form.add-form select{
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    background: #fff;
+    color: var(--ink);
+    flex: 1 1 140px;
+  }
+  form.add-form textarea{ width:100%; min-height: 44px; resize: vertical; font-family: var(--sans); }
+  form.add-form .rating-select{ flex: 0 0 90px; }
+  form.add-form .type-select{ flex: 0 0 130px; }
+  form.add-form .date-input{ flex: 0 0 150px; }
+  form.add-form .file-label{
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--ink-soft);
+    display:flex; align-items:center; gap:8px;
+    background: #fff;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+  }
+  form.add-form .file-label input{ display:none; }
+  .form-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .btn{
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 7px 14px;
+    border-radius: 9px;
+    border: none;
+    cursor: pointer;
+  }
+  .btn.save{ background: var(--accent, #333); color: #fff; }
+  .btn.cancel{ background: transparent; color: var(--ink-soft); }
+
+  .who-toggle{
+    display:flex; gap: 4px;
+    background: var(--surface-alt);
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .who-toggle label{
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    padding: 5px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    display:flex; align-items:center; gap:5px;
+    color: var(--ink-soft);
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .who-toggle input{ accent-color: var(--ink); }
+  .who-toggle label:has(input:checked){
+    background: var(--ink);
+    color: #fff;
+  }
+  .mark-form{
+    margin-top: 8px;
+    padding: 12px;
+    background: var(--surface-alt);
+    border-radius: 12px;
+    display:grid;
+    gap: 9px;
+  }
+  .mark-form-row{ display:flex; align-items:center; gap: 14px; flex-wrap:wrap; }
+  .dice-select{ flex: 0 0 90px; }
+  .dice-badge{ font-size: 0.78rem; letter-spacing: 0.5px; }
+
+  /* Cover grid */
+  .cover-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+  .cover-card{
+    position: relative;
+    aspect-ratio: 2 / 3;
+    border-radius: 14px;
+    overflow: hidden;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 6px 16px -6px rgba(20,20,45,0.28);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .cover-card:hover{
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 12px 26px -8px rgba(20,20,45,0.32);
+  }
+  .cover-initial{
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 2.4rem;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  }
+  .cover-rating{
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 8px;
+    backdrop-filter: blur(3px);
+    z-index: 2;
+  }
+  .cover-photo-btn{
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    border: none;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    font-size: 0.72rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cover-photo-btn:hover{ background: rgba(0,0,0,0.6); }
+  .cover-del{
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    border: none;
+    background: rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.9);
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-size: 0.66rem;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.15s ease, background 0.15s ease;
+  }
+  .cover-card:hover .cover-del,
+  .cover-card:active .cover-del{ opacity: 1; }
+  .cover-del:hover{ background: rgba(0,0,0,0.6); }
+  .cover-caption{
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 22px 8px 8px;
+    background: linear-gradient(to top, rgba(0,0,0,0.72), rgba(0,0,0,0));
+    text-align: center;
+    z-index: 1;
+  }
+  .cover-title{
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.78rem;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .cover-extra{
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.8);
+    margin-top: 2px;
+  }
+  @media (max-width: 480px){
+    .cover-grid{ grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+    .cover-initial{ font-size: 2rem; }
+    body{ padding: 20px 10px 50px; }
+    .panel{ padding: 20px 16px 10px; border-radius: 18px; }
+    header.top h1{ font-size: 1.6rem; }
+  }
+
+  /* Preferences */
+  .tag-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom: 10px; }
+  .tag{
+    background: var(--accent-soft, #eee);
+    color: var(--accent, #333);
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 5px 10px 5px 13px;
+    border-radius: 14px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .tag button{
+    border:none; background:none; cursor:pointer; color: inherit; opacity:0.6; font-size:0.9rem; line-height:1;
+  }
+  .tag button:hover{ opacity:1; }
+  .tag-add{ display:flex; gap:6px; }
+  .tag-add input{
+    font-family: var(--sans); font-size: 0.88rem;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 9px; flex:1;
+  }
+
+  /* Search results */
+  .search-summary{
+    font-family: var(--mono); font-size: 0.78rem; color: var(--ink-faint);
+    margin-bottom: 18px;
+  }
+  .search-group{ margin-bottom: 24px; }
+  .search-group h3{
+    font-size: 0.94rem; font-weight: 600; margin: 0 0 8px;
+    color: var(--accent, var(--ink));
+  }
+  .search-result-list{ list-style:none; margin:0; padding:0; }
+  .search-result-list li{
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .search-result-list li:last-child{ border-bottom:none; }
+  .jump-btn{
+    font-family: var(--sans); font-size: 0.72rem; font-weight: 500;
+    border: 1px solid var(--accent, #999); color: var(--accent, #333);
+    background: var(--accent-soft, #eee);
+    padding: 5px 10px; border-radius: 10px; cursor:pointer;
+    white-space: nowrap;
+    transition: transform 0.12s ease, filter 0.12s ease;
+  }
+  .jump-btn:hover{ filter: brightness(0.96); transform: translateY(-1px); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Min katalog</h1>
+    <p id="subtitle">laster …</p>
+    <div class="search-row">
+      <input type="text" id="searchInput" placeholder="Søk på tvers av alt – f.eks. en tittel …" autocomplete="off">
+      <button id="searchClear" title="Tøm søk">✕</button>
+    </div>
+    <p id="syncStatus" class="sync-status">kobler til …</p>
+  </header>
+  <div class="tabs" id="tabs"></div>
+  <div class="panel" id="panel"><div class="panel-inner" id="panelInner"></div></div>
+</div>
+<input type="file" id="coverFileInput" accept="image/*" capture="environment" style="display:none">
+
+<script>
+const SUPABASE_URL = 'https://kdclszlycvarvjbuhuaj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_fHr287JzbN58_C2KhmfObg_BhpmGNII';
+const SUPABASE_HEADERS = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json'
+};
+
+const CATEGORIES = [
+  { id:'books', label:'Bøker', icon:'📚', accentVar:'--c-books', softVar:'--c-books-soft',
+    extraLabel:'Forfatter', extraPlaceholder:'F.eks. Karl Ove Knausgård',
+    logExtraLabel:'Forfatter', hasRating:true, singular:'bok', covers:true,
+    likerBlocks:[ {key:'liker', label:'Liker'}, {key:'ikke', label:'Liker ikke'} ] },
+  { id:'movies', label:'Filmer', icon:'🎬', accentVar:'--c-movies', softVar:'--c-movies-soft',
+    extraLabel:null, logExtraLabel:null, hasRating:true, singular:'film', covers:true,
+    likerBlocks:[ {key:'vi', label:'Vi liker'}, {key:'jeg', label:'Jeg liker'}, {key:'ikke', label:'Liker ikke'} ] },
+  { id:'series', label:'Serier', icon:'📺', accentVar:'--c-series', softVar:'--c-series-soft',
+    extraLabel:null, logExtraLabel:'Sesong/status', logExtraPlaceholder:'F.eks. S2 – fullført',
+    hasRating:true, singular:'serie', covers:true,
+    likerBlocks:[ {key:'vi', label:'Vi liker'}, {key:'jeg', label:'Jeg liker'}, {key:'ikke', label:'Liker ikke'} ] },
+  { id:'games', label:'Spill', icon:'🎮', accentVar:'--c-games', softVar:'--c-games-soft',
+    extraLabel:null, logExtraLabel:null, hasRating:true, singular:'spill',
+    likerBlocks:[ {key:'liker', label:'Liker'}, {key:'ikke', label:'Liker ikke'} ] },
+  { id:'activities', label:'Aktiviteter', icon:'🎯', accentVar:'--c-activities', softVar:'--c-activities-soft',
+    extraLabel:null, logExtraLabel:null, hasRating:false, singular:'aktivitet',
+    likerBlocks:[ {key:'liker', label:'Liker'}, {key:'ikke', label:'Liker ikke'} ] },
+];
+
+const PREF_LISTS = [
+  { id:'foretrekker', label:'Sjangre jeg foretrekker', placeholder:'F.eks. science fiction' },
+  { id:'unngar', label:'Sjangre jeg unngår', placeholder:'F.eks. skrekk' },
+  { id:'stemning', label:'Stemning jeg ofte er ute etter', placeholder:'F.eks. koselig og lavmælt' },
+];
+
+function uid(){ return Math.random().toString(36).slice(2, 10); }
+
+function seedRecommendations(){
+  return [
+    { id: uid(), type:'movies', title:'Freefall: A Reckoning for Boeing', note:'Dokumentar om Boeing-skandalene.' },
+    { id: uid(), type:'movies', title:'Chris & Martina: The Final Set', note:'Sportsdokumentar om Chris Evert og Martina Navratilova.' },
+    { id: uid(), type:'movies', title:'The Perfect Neighbor', note:'Sterk dokumentar bygget på politiets egne opptak.' },
+    { id: uid(), type:'series', title:'Toxic Town', note:'Miniserie om mødre som saksøker myndighetene etter et miljøskandale.' },
+    { id: uid(), type:'series', title:'The Spy', note:'Miniserie med Sacha Baron Cohen som den israelske spionen Eli Cohen.' },
+    { id: uid(), type:'series', title:'Radioactive Emergency', note:'Dramathriller inspirert av en reell atomkatastrofe.' },
+    { id: uid(), type:'series', title:'Delhi Crime', note:'Prisbelønt drama basert på en reell og profilert kriminalsak i India.' },
+    { id: uid(), type:'movies', title:'Best of the Best', note:'Fersk Netflix-komedie.' },
+    { id: uid(), type:'movies', title:'53 Sundays', note:'Spansk dramakomedie, varm og litt bittersøt.' },
+    { id: uid(), type:'movies', title:'Eat Pray Bark', note:'Lettere tysk komedie.' },
+    { id: uid(), type:'movies', title:'Toaster', note:'Lettere indisk komedie.' },
+    { id: uid(), type:'movies', title:'Hamnet', note:'Basert på Maggie O\u2019Farrells roman, Golden Globe-vinner.' },
+    { id: uid(), type:'series', title:'My Brilliant Career', note:'Miniserie basert på en klassisk roman.' },
+    { id: uid(), type:'series', title:'Death by Lightning', note:'Miniserie om attentatet på president Garfield.' },
+    { id: uid(), type:'series', title:'House of Guinness', note:'Periodedrama om Guinness-familiens historie.' },
+    { id: uid(), type:'movies', title:'On Behalf of My Son', note:'Portugisisk drama om en mor som kjemper for sønnen sin.' },
+    { id: uid(), type:'movies', title:'A Letter to My Youth', note:'Indonesisk drama om å gjøre opp med fortid og familie.' },
+    { id: uid(), type:'movies', title:'CODA', note:'Om en hørende datter i en døv familie. NB: ligger på Apple TV+, ikke Netflix.' },
+  ];
+}
+
+function seedMoviesVi(){
+  const titles = [
+    ['Ibelin', 'Dokumentar (2024) om en ung World of Warcraft-spiller.'],
+    ['Forlis: Mareritt til sjøs', 'Dokumentar (2026) om en cruisekatastrofe.'],
+    ['Je m\u2019appelle Agneta', 'Drama (2026), svensk.'],
+    ['Hillbilly Elegy', 'Drama (2020), Oscar-nominert.'],
+    ['Ruth & Boaz', 'Drama (2025), moderne versjon av Ruts bok.'],
+    ['Togdrømmer', 'Drama (2025), basert på Denis Johnsons novelle, Oscar-nominert.'],
+    ['The Dig', 'Drama (2021), med Carey Mulligan og Ralph Fiennes.'],
+    ['Føl stemmen min', 'Drama (2026).'],
+    ['Den siste kjempen', 'Drama (2026), argentinsk, med Oscar Martínez.'],
+  ];
+  const base = Date.now() - titles.length * 1000;
+  return titles.map(([title, note], i) => ({ id: uid(), title, note, addedAt: base + i * 1000 }));
+}
+
+function seedSeriesVi(){
+  return [
+    { id: uid(), title:'Alt lyset vi ikke ser', note:'Miniserie, Drama (2023), basert på Anthony Doerrs roman.', addedAt: Date.now() },
+  ];
+}
+
+function defaultData(){
+  const d = { preferences: {}, recommendations: seedRecommendations() };
+  CATEGORIES.forEach(c => {
+    d[c.id] = { log: [] };
+    c.likerBlocks.forEach(b => { d[c.id][b.key] = []; });
+  });
+  d.movies.vi = seedMoviesVi();
+  d.series.vi = seedSeriesVi();
+  PREF_LISTS.forEach(p => { d.preferences[p.id] = []; });
+  return d;
+}
+
+let state = null;
+let activeTab = 'movies';
+let openForms = {};
+let markingOpen = {};
+let searchQuery = '';
+let catViewMode = {};   // cat.id -> 'cover' | 'list'
+let catSortMode = {};   // cat.id -> 'added' | 'alpha'
+let pendingCoverTarget = null; // {catId, key, itemId}
+
+function setSyncStatus(text, isError){
+  const el = document.getElementById('syncStatus');
+  if(!el) return;
+  el.textContent = text;
+  el.classList.toggle('sync-error', !!isError);
+}
+
+function ensureAddedAt(list){
+  list.forEach((it, idx) => {
+    if(!it.addedAt){ it.addedAt = Date.now() - (list.length - idx) * 1000; }
+  });
+}
+
+function backfillAddedAt(){
+  CATEGORIES.forEach(c=>{
+    c.likerBlocks.forEach(b=> ensureAddedAt(state[c.id][b.key]));
+  });
+}
+
+async function loadData(){
+  try{
+    setSyncStatus('Henter fra Supabase …', false);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/katalog?id=eq.main&select=data`, {
+      headers: SUPABASE_HEADERS
+    });
+    if(!res.ok) throw new Error(`Supabase svarte ${res.status}`);
+    const rows = await res.json();
+    const raw = rows && rows[0] && rows[0].data;
+    if(raw && Object.keys(raw).length > 0){
+      const base = defaultDataShapeOnly();
+      state = Object.assign(base, raw);
+      CATEGORIES.forEach(c=>{
+        const shape = { log: [] };
+        c.likerBlocks.forEach(b => shape[b.key] = []);
+        state[c.id] = Object.assign(shape, state[c.id]);
+      });
+      state.preferences = Object.assign(defaultPrefsShape(), state.preferences);
+      if(!Array.isArray(state.recommendations)) state.recommendations = [];
+      backfillAddedAt();
+      const patched = await applyPendingPatches();
+      setSyncStatus(patched ? 'Lagret i Supabase' : 'Synkronisert med Supabase', false);
+      return;
+    }
+    state = defaultData();
+    await applyPendingPatches();
+    await saveData();
+    setSyncStatus('Lagret i Supabase', false);
+  }catch(e){
+    console.error('Kunne ikke hente fra Supabase:', e);
+    setSyncStatus('Fikk ikke kontakt med Supabase – sjekk URL/nøkkel og at tabellen finnes', true);
+    state = defaultData();
+  }
+}
+
+async function applyPendingPatches(){
+  let changed = false;
+  const alreadyHiddenLife = state.movies.vi.some(it => it.title.toLowerCase() === 'a hidden life');
+  if(!alreadyHiddenLife){
+    state.movies.vi.push({ id: uid(), title: 'A Hidden Life', rating: '6', addedAt: Date.now(),
+      note: 'Vakker natur, veldig bra spilt, men tung og trist. Basert på faktiske hendelser.' });
+    changed = true;
+  }
+  const alreadyFrihetensRegn = state.movies.jeg.some(it => it.title.toLowerCase() === 'frihetens regn');
+  if(!alreadyFrihetensRegn){
+    state.movies.jeg.push({ id: uid(), title: 'Frihetens Regn', rating: '6', addedAt: Date.now() });
+    changed = true;
+  }
+  if(changed) await saveData();
+  return changed;
+}
+
+function defaultDataShapeOnly(){
+  const d = { preferences: defaultPrefsShape(), recommendations: [] };
+  CATEGORIES.forEach(c => {
+    d[c.id] = { log: [] };
+    c.likerBlocks.forEach(b => { d[c.id][b.key] = []; });
+  });
+  return d;
+}
+function defaultPrefsShape(){
+  const p = {};
+  PREF_LISTS.forEach(pl => { p[pl.id] = []; });
+  return p;
+}
+
+async function saveData(){
+  try{
+    setSyncStatus('Lagrer …', false);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/katalog?on_conflict=id`, {
+      method: 'POST',
+      headers: Object.assign({}, SUPABASE_HEADERS, { 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify([{ id: 'main', data: state, updated_at: new Date().toISOString() }])
+    });
+    if(!res.ok){
+      const body = await res.text();
+      throw new Error(`Supabase svarte ${res.status}: ${body}`);
+    }
+    setSyncStatus('Lagret i Supabase', false);
+  }catch(e){
+    console.error('Kunne ikke lagre:', e);
+    setSyncStatus('Kunne ikke lagre i Supabase – prøv igjen', true);
+  }
+}
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+function formatDate(iso){
+  if(!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if(isNaN(d)) return iso;
+  return d.toLocaleDateString('no-NO', { year:'numeric', month:'short', day:'numeric' });
+}
+
+function diceFace(n){
+  const faces = ['','\u2680','\u2681','\u2682','\u2683','\u2684','\u2685'];
+  return faces[Number(n)] || '';
+}
+
+function coverGradient(title){
+  let hash = 0;
+  for(let i=0;i<title.length;i++){ hash = title.charCodeAt(i) + ((hash<<5)-hash); }
+  hash = Math.abs(hash);
+  const hue1 = hash % 360;
+  const hue2 = (hue1 + 46) % 360;
+  return `linear-gradient(155deg, hsl(${hue1}deg 72% 46%), hsl(${hue2}deg 68% 22%))`;
+}
+
+function logTitleFor(cat){
+  return cat.id === 'activities' ? 'Gjort' : (cat.id === 'series' ? 'Sett' : (cat.id === 'books' ? 'Lest' : 'Sett/spilt'));
+}
+
+function textMatches(it, q){
+  return (it.title && it.title.toLowerCase().includes(q)) ||
+         (it.extra && it.extra.toLowerCase().includes(q)) ||
+         (it.note && it.note.toLowerCase().includes(q));
+}
+
+function runSearch(query){
+  const q = query.trim().toLowerCase();
+  if(!q) return [];
+  const results = [];
+  CATEGORIES.forEach(cat=>{
+    cat.likerBlocks.forEach(b=>{
+      state[cat.id][b.key].forEach(it=>{
+        if(textMatches(it, q)) results.push({ cat, tabId: cat.id, listLabel: b.label, item: it });
+      });
+    });
+    state[cat.id].log.forEach(it=>{
+      if(textMatches(it, q)) results.push({ cat, tabId: cat.id, listLabel: logTitleFor(cat), item: it, isLog: true });
+    });
+  });
+  state.recommendations.forEach(it=>{
+    if(textMatches(it, q)){
+      const typeLabel = it.type === 'series' ? 'Serie' : 'Film';
+      results.push({ cat: null, tabId: 'recommendations', listLabel: `Anbefaling – ${typeLabel}`, item: it });
+    }
+  });
+  return results;
+}
+
+function renderSearchResults(query){
+  const results = runSearch(query);
+  const accent = 'var(--c-recs)';
+  if(results.length === 0){
+    return `<div class="search-summary">Ingen treff på «${escapeHtml(query)}» – hverken i lister, logg eller anbefalinger.</div>`;
+  }
+  const grouped = {};
+  results.forEach(r=>{
+    const groupKey = r.cat ? `${r.cat.icon} ${r.cat.label}` : '⭐ Anbefalinger';
+    grouped[groupKey] = grouped[groupKey] || [];
+    grouped[groupKey].push(r);
+  });
+  let html = `<div class="search-summary">${results.length} treff på «${escapeHtml(query)}»</div>`;
+  Object.keys(grouped).forEach(groupKey=>{
+    const groupAccent = grouped[groupKey][0].cat ? `var(${grouped[groupKey][0].cat.accentVar})` : accent;
+    html += `<div class="search-group" style="--accent:${groupAccent}">
+      <h3>${groupKey}</h3>
+      <ul class="search-result-list">
+      ${grouped[groupKey].map(r=>{
+        const it = r.item;
+        const dateBit = r.isLog && it.date ? `<span class="item-meta"><span>${formatDate(it.date)}</span>${it.rating ? `<span class="badge dice-badge" style="--accent:${groupAccent}">${diceFace(it.rating)} ${it.rating}/6</span>` : ''}</span>` : '';
+        return `
+        <li>
+          <div class="item-main">
+            <div class="item-title">${escapeHtml(it.title)}${it.extra ? ` <span class="extra">– ${escapeHtml(it.extra)}</span>` : ''} <span class="badge" style="--accent:${groupAccent}">${escapeHtml(r.listLabel)}</span></div>
+            ${dateBit}
+            ${it.note ? `<div class="item-note">${escapeHtml(it.note)}</div>` : ''}
+          </div>
+          <button class="jump-btn" style="--accent:${groupAccent}" data-jump="${r.tabId}">Gå til fane</button>
+        </li>`;
+      }).join('')}
+      </ul>
+    </div>`;
+  });
+  return html;
+}
+
+function ratingOptions(selected){
+  let out = '<option value="">–</option>';
+  for(let i=1;i<=6;i++){
+    out += `<option value="${i}" ${String(selected)===String(i)?'selected':''}>${i}</option>`;
+  }
+  return out;
+}
+
+function sortedItems(cat, items){
+  const mode = catSortMode[cat.id] || 'added';
+  const arr = [...items];
+  if(mode === 'alpha'){
+    arr.sort((a,b)=> a.title.localeCompare(b.title, 'no'));
+  } else {
+    arr.sort((a,b)=> (b.addedAt||0) - (a.addedAt||0));
+  }
+  return arr;
+}
+
+function renderLikerBlock(cat, key, title){
+  const accent = `var(${cat.accentVar})`;
+  const soft = `var(${cat.softVar})`;
+  const rawItems = state[cat.id][key];
+  const items = sortedItems(cat, rawItems);
+  const formKey = `${cat.id}-${key}`;
+  const showForm = !!openForms[formKey];
+  const viewMode = cat.covers ? (catViewMode[cat.id] || 'cover') : 'list';
+
+  let itemsHtml = '';
+  if(items.length === 0){
+    itemsHtml = `<div class="empty">Ingenting lagt til ennå.</div>`;
+  } else if(cat.covers && viewMode === 'cover'){
+    itemsHtml = `<div class="cover-grid">` + items.map(it => {
+      const initial = (it.title || '?').trim().charAt(0).toUpperCase();
+      const bg = it.cover ? `background-image:url('${it.cover}')` : `background:${coverGradient(it.title)}`;
+      return `
+      <div class="cover-card" style="${bg}" title="${escapeHtml(it.title)}${it.note ? ' — ' + escapeHtml(it.note) : ''}">
+        <button class="cover-photo-btn" data-cover="${cat.id}|${key}|${it.id}" title="Legg til/bytt bilde">📷</button>
+        <button class="cover-del" data-del="${cat.id}|${key}|${it.id}" title="Fjern">✕</button>
+        ${cat.hasRating && it.rating ? `<span class="cover-rating">${diceFace(it.rating)} ${it.rating}</span>` : ''}
+        ${it.cover ? '' : `<span class="cover-initial">${escapeHtml(initial)}</span>`}
+        <div class="cover-caption">
+          <div class="cover-title">${escapeHtml(it.title)}</div>
+          ${it.extra ? `<div class="cover-extra">${escapeHtml(it.extra)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('') + `</div>`;
+  } else {
+    itemsHtml = `<ul class="items">` + items.map(it => `
+      <li>
+        <div class="item-main">
+          <div class="item-title">${escapeHtml(it.title)}${it.extra ? ` <span class="extra">– ${escapeHtml(it.extra)}</span>`:''} ${cat.hasRating && it.rating ? `<span class="badge dice-badge" style="--accent:${accent};--accent-soft:${soft}">${diceFace(it.rating)} ${it.rating}/6</span>` : ''}</div>
+          ${it.note ? `<div class="item-note">${escapeHtml(it.note)}</div>` : ''}
+        </div>
+        <button class="del-btn" data-del="${cat.id}|${key}|${it.id}" title="Fjern">✕</button>
+      </li>`).join('') + `</ul>`;
+  }
+
+  let formHtml = '';
+  if(showForm){
+    formHtml = `
+      <form class="add-form" data-add="${cat.id}|${key}">
+        <div class="row">
+          <input type="text" name="title" placeholder="Tittel" required>
+          ${cat.extraLabel ? `<input type="text" name="extra" placeholder="${cat.extraLabel}">` : ''}
+          ${cat.hasRating ? `<select name="rating" class="rating-select">${ratingOptions('')}</select>` : ''}
+        </div>
+        ${cat.covers ? `<label class="file-label">📷 Legg til bilde/cover (valgfritt)<input type="file" name="cover" accept="image/*" capture="environment"></label>` : ''}
+        <textarea name="note" placeholder="Hvorfor / hvorfor ikke"></textarea>
+        <div class="form-actions">
+          <button type="button" class="btn cancel" data-cancel="${formKey}">Avbryt</button>
+          <button type="submit" class="btn save" style="background:${accent}">Lagre</button>
+        </div>
+      </form>`;
+  }
+
+  return `
+    <section class="block" style="--accent:${accent}">
+      <h2>${title} <span class="count">${rawItems.length}</span></h2>
+      ${itemsHtml}
+      ${!showForm ? `<button class="add-link" data-open="${formKey}">+ Legg til</button>` : formHtml}
+    </section>`;
+}
+
+function renderLogBlock(cat){
+  const accent = `var(${cat.accentVar})`;
+  const soft = `var(${cat.softVar})`;
+  const items = [...state[cat.id].log].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const formKey = `${cat.id}-log`;
+  const showForm = !!openForms[formKey];
+
+  let itemsHtml = '';
+  if(items.length === 0){
+    itemsHtml = `<div class="empty">Ingenting logget ennå.</div>`;
+  } else {
+    itemsHtml = `<ul class="items">` + items.map(it => `
+      <li>
+        <div class="item-main">
+          <div class="item-title">${escapeHtml(it.title)}${it.extra ? ` <span class="extra">– ${escapeHtml(it.extra)}</span>` : ''}</div>
+          <div class="item-meta">
+            <span>${formatDate(it.date)}</span>
+            ${cat.hasRating && it.rating ? `<span class="badge dice-badge" style="--accent:${accent};--accent-soft:${soft}">${diceFace(it.rating)} ${it.rating}/6</span>` : ''}
+          </div>
+          ${it.note ? `<div class="item-note">${escapeHtml(it.note)}</div>` : ''}
+        </div>
+        <button class="del-btn" data-del="${cat.id}|log|${it.id}" title="Fjern">✕</button>
+      </li>`).join('') + `</ul>`;
+  }
+
+  let formHtml = '';
+  if(showForm){
+    formHtml = `
+      <form class="add-form" data-add="${cat.id}|log">
+        <div class="row">
+          <input type="date" name="date" class="date-input" required>
+          <input type="text" name="title" placeholder="Tittel" required>
+          ${cat.hasRating ? `<select name="rating" class="rating-select">${ratingOptions('')}</select>` : ''}
+        </div>
+        ${cat.logExtraLabel ? `<input type="text" name="extra" placeholder="${cat.logExtraPlaceholder || cat.logExtraLabel}">` : ''}
+        <textarea name="note" placeholder="Kort notat"></textarea>
+        <div class="form-actions">
+          <button type="button" class="btn cancel" data-cancel="${formKey}">Avbryt</button>
+          <button type="submit" class="btn save" style="background:${accent}">Lagre</button>
+        </div>
+      </form>`;
+  }
+
+  const logTitle = logTitleFor(cat);
+
+  return `
+    <section class="block" style="--accent:${accent}">
+      <h2>${logTitle} <span class="count">${items.length}</span></h2>
+      ${itemsHtml}
+      ${!showForm ? `<button class="add-link" data-open="${formKey}">+ Registrer</button>` : formHtml}
+    </section>`;
+}
+
+function renderToolbar(cat){
+  if(!cat.covers) return '';
+  const viewMode = catViewMode[cat.id] || 'cover';
+  const sortMode = catSortMode[cat.id] || 'added';
+  return `
+    <div class="toolbar">
+      <div class="view-toggle" data-viewtoggle="${cat.id}">
+        <button type="button" class="${viewMode==='cover'?'active':''}" data-view="cover">🖼 Cover</button>
+        <button type="button" class="${viewMode==='list'?'active':''}" data-view="list">☰ Liste</button>
+      </div>
+      <select class="sort-select" data-sort="${cat.id}">
+        <option value="added" ${sortMode==='added'?'selected':''}>Nyeste først</option>
+        <option value="alpha" ${sortMode==='alpha'?'selected':''}>Alfabetisk (A–Å)</option>
+      </select>
+    </div>`;
+}
+
+function renderCategoryPanel(cat){
+  const hasSplit = cat.likerBlocks.some(b => b.key === 'vi' || b.key === 'jeg');
+  const hint = hasSplit ? `<div class="subhint">Merk hva dere liker sammen, og hva du liker å se alene.</div>` : '';
+  return `
+    ${renderToolbar(cat)}
+    ${hint}
+    ${cat.likerBlocks.map(b => renderLikerBlock(cat, b.key, b.label)).join('')}
+    ${renderLogBlock(cat)}
+  `;
+}
+
+function renderPrefsPanel(){
+  const accent = `var(--c-prefs)`;
+  const soft = `var(--c-prefs-soft)`;
+  return PREF_LISTS.map(p => {
+    const tags = state.preferences[p.id];
+    const tagsHtml = tags.length
+      ? tags.map(t => `<span class="tag" style="--accent:${accent};--accent-soft:${soft}">${escapeHtml(t.text)}<button data-del="preferences|${p.id}|${t.id}">✕</button></span>`).join('')
+      : `<div class="empty">Ingen lagt til ennå.</div>`;
+    return `
+      <section class="block" style="--accent:${accent}">
+        <h2>${p.label}</h2>
+        <div class="tag-row">${tagsHtml}</div>
+        <form class="tag-add" data-pref="${p.id}">
+          <input type="text" name="text" placeholder="${p.placeholder}">
+          <button type="submit" class="btn save" style="background:${accent}">Legg til</button>
+        </form>
+      </section>`;
+  }).join('');
+}
+
+function renderRecommendationsPanel(){
+  const accent = `var(--c-recs)`;
+  const soft = `var(--c-recs-soft)`;
+  const items = state.recommendations;
+  const formKey = 'recs-add';
+  const showForm = !!openForms[formKey];
+
+  let itemsHtml = '';
+  if(items.length === 0){
+    itemsHtml = `<div class="empty">Ingen anbefalinger liggende ennå.</div>`;
+  } else {
+    itemsHtml = `<ul class="items">` + items.map(it => {
+      const catLabel = it.type === 'series' ? 'Serie' : 'Film';
+      const showMark = !!markingOpen[it.id];
+      return `
+      <li>
+        <div class="item-main">
+          <div class="item-title">${escapeHtml(it.title)} <span class="badge" style="--accent:${accent};--accent-soft:${soft}">${catLabel}</span></div>
+          ${it.note ? `<div class="item-note">${escapeHtml(it.note)}</div>` : ''}
+          ${showMark
+            ? `<form class="mark-form" data-markform="${it.id}|${it.type}">
+                 <div class="mark-form-row">
+                   <div class="who-toggle">
+                     <label><input type="radio" name="who" value="vi" checked> Vi</label>
+                     <label><input type="radio" name="who" value="jeg"> Jeg</label>
+                   </div>
+                   <select name="rating" class="rating-select dice-select">${ratingOptions('')}</select>
+                 </div>
+                 <div class="form-actions">
+                   <button type="button" class="btn cancel" data-mark-cancel="${it.id}">Avbryt</button>
+                   <button type="submit" class="btn save" style="background:${accent}">Lagre</button>
+                 </div>
+               </form>`
+            : `<div class="mark-row"><button class="mark-btn" style="--accent:${accent};--accent-soft:${soft}" data-mark-open="${it.id}">✓ Sett</button></div>`
+          }
+        </div>
+        <button class="del-btn" data-del="recommendations||${it.id}" title="Fjern">✕</button>
+      </li>`;
+    }).join('') + `</ul>`;
+  }
+
+  let formHtml = '';
+  if(showForm){
+    formHtml = `
+      <form class="add-form" data-add="recommendations|list">
+        <div class="row">
+          <select name="type" class="type-select">
+            <option value="movies">Film</option>
+            <option value="series">Serie</option>
+          </select>
+          <input type="text" name="title" placeholder="Tittel" required>
+        </div>
+        <textarea name="note" placeholder="Kort notat om hvorfor det er anbefalt"></textarea>
+        <div class="form-actions">
+          <button type="button" class="btn cancel" data-cancel="${formKey}">Avbryt</button>
+          <button type="submit" class="btn save" style="background:${accent}">Lagre</button>
+        </div>
+      </form>`;
+  }
+
+  return `
+    <div class="subhint">Ting du kan hake av som sett, og velge om dere så det sammen eller du så det alene.</div>
+    <section class="block" style="--accent:${accent}">
+      <h2>Anbefalinger <span class="count">${items.length}</span></h2>
+      ${itemsHtml}
+      ${!showForm ? `<button class="add-link" data-open="${formKey}">+ Legg til anbefaling</button>` : formHtml}
+    </section>`;
+}
+
+function render(){
+  renderTabs();
+  const inner = document.getElementById('panelInner');
+  if(searchQuery.trim()){
+    inner.innerHTML = renderSearchResults(searchQuery);
+  } else if(activeTab === 'preferences'){
+    inner.innerHTML = renderPrefsPanel();
+  } else if(activeTab === 'recommendations'){
+    inner.innerHTML = renderRecommendationsPanel();
+  } else {
+    const cat = CATEGORIES.find(c=>c.id===activeTab);
+    inner.innerHTML = renderCategoryPanel(cat);
+  }
+  attachHandlers();
+}
+
+function renderTabs(){
+  const tabsEl = document.getElementById('tabs');
+  const all = [
+    ...CATEGORIES,
+    { id:'recommendations', label:'Anbefalinger', icon:'⭐', accentVar:'--c-recs' },
+    { id:'preferences', label:'Preferanser', icon:'🧭', accentVar:'--c-prefs' }
+  ];
+  tabsEl.innerHTML = all.map(c => {
+    const accent = getComputedStyle(document.documentElement).getPropertyValue(c.accentVar).trim();
+    const active = c.id === activeTab ? 'active' : '';
+    return `<button class="tab ${active}" style="--tab-accent:${accent}" data-tab="${c.id}">
+      <span>${c.icon}</span><span>${c.label}</span>
+    </button>`;
+  }).join('');
+  tabsEl.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeTab = btn.dataset.tab;
+      searchQuery = '';
+      const input = document.getElementById('searchInput');
+      if(input) input.value = '';
+      updateSearchRowState();
+      render();
+    });
+  });
+}
+
+function readAndResizeImage(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 360;
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function attachHandlers(){
+  document.querySelectorAll('[data-jump]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      activeTab = btn.dataset.jump;
+      searchQuery = '';
+      const input = document.getElementById('searchInput');
+      if(input) input.value = '';
+      updateSearchRowState();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-viewtoggle]').forEach(group=>{
+    group.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        catViewMode[group.dataset.viewtoggle] = btn.dataset.view;
+        render();
+      });
+    });
+  });
+  document.querySelectorAll('select[data-sort]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      catSortMode[sel.dataset.sort] = sel.value;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-cover]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const [catId, key, itemId] = btn.dataset.cover.split('|');
+      pendingCoverTarget = { catId, key, itemId };
+      document.getElementById('coverFileInput').click();
+    });
+  });
+  document.querySelectorAll('[data-open]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ openForms[btn.dataset.open] = true; render(); });
+  });
+  document.querySelectorAll('[data-cancel]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ openForms[btn.dataset.cancel] = false; render(); });
+  });
+  document.querySelectorAll('[data-mark-open]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ markingOpen[btn.dataset.markOpen] = true; render(); });
+  });
+  document.querySelectorAll('[data-mark-cancel]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ markingOpen[btn.dataset.markCancel] = false; render(); });
+  });
+  document.querySelectorAll('form[data-markform]').forEach(form=>{
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const [recId, type] = form.dataset.markform.split('|');
+      const rec = state.recommendations.find(r=>r.id===recId);
+      if(!rec) return;
+      const fd = new FormData(form);
+      const who = fd.get('who') || 'vi';
+      const rating = fd.get('rating') || null;
+      const newItem = { id: uid(), title: rec.title, note: rec.note || '', addedAt: Date.now() };
+      if(rating) newItem.rating = rating;
+      state[type][who].push(newItem);
+      state.recommendations = state.recommendations.filter(r=>r.id!==recId);
+      delete markingOpen[recId];
+      await saveData();
+      render();
+    });
+  });
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const [catId, key, id] = btn.dataset.del.split('|');
+      if(catId === 'preferences'){
+        state.preferences[key] = state.preferences[key].filter(t=>t.id!==id);
+      } else if(catId === 'recommendations'){
+        state.recommendations = state.recommendations.filter(r=>r.id!==id);
+      } else {
+        state[catId][key] = state[catId][key].filter(it=>it.id!==id);
+      }
+      await saveData();
+      render();
+    });
+  });
+  document.querySelectorAll('form[data-add]').forEach(form=>{
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const [catId, key] = form.dataset.add.split('|');
+      const fd = new FormData(form);
+      if(catId === 'recommendations'){
+        const title = (fd.get('title')||'').trim();
+        if(!title) return;
+        state.recommendations.push({ id: uid(), type: fd.get('type') || 'movies', title, note: (fd.get('note')||'').trim() });
+        openForms['recs-add'] = false;
+        await saveData();
+        render();
+        return;
+      }
+      const item = { id: uid(), addedAt: Date.now() };
+      if(key === 'log'){
+        item.date = fd.get('date') || new Date().toISOString().slice(0,10);
+        item.title = (fd.get('title')||'').trim();
+        if(!item.title) return;
+        if(fd.has('extra')) item.extra = (fd.get('extra')||'').trim();
+        if(fd.has('rating') && fd.get('rating')) item.rating = fd.get('rating');
+        item.note = (fd.get('note')||'').trim();
+      } else {
+        item.title = (fd.get('title')||'').trim();
+        if(!item.title) return;
+        if(fd.has('extra')) item.extra = (fd.get('extra')||'').trim();
+        if(fd.has('rating') && fd.get('rating')) item.rating = fd.get('rating');
+        item.note = (fd.get('note')||'').trim();
+        const fileInput = form.querySelector('input[type="file"][name="cover"]');
+        if(fileInput && fileInput.files && fileInput.files[0]){
+          try{ item.cover = await readAndResizeImage(fileInput.files[0]); }catch(err){ console.error('Kunne ikke lese bilde:', err); }
+        }
+      }
+      state[catId][key].push(item);
+      openForms[`${catId}-${key}`] = false;
+      await saveData();
+      render();
+    });
+  });
+  document.querySelectorAll('form[data-pref]').forEach(form=>{
+    form.addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const key = form.dataset.pref;
+      const fd = new FormData(form);
+      const text = (fd.get('text')||'').trim();
+      if(!text) return;
+      state.preferences[key].push({ id: uid(), text });
+      await saveData();
+      render();
+    });
+  });
+}
+
+function updateSearchRowState(){
+  const row = document.querySelector('.search-row');
+  if(!row) return;
+  row.classList.toggle('has-query', !!searchQuery.trim());
+}
+
+function setupSearchInput(){
+  const input = document.getElementById('searchInput');
+  const clearBtn = document.getElementById('searchClear');
+  input.addEventListener('input', ()=>{
+    searchQuery = input.value;
+    updateSearchRowState();
+    render();
+  });
+  clearBtn.addEventListener('click', ()=>{
+    searchQuery = '';
+    input.value = '';
+    updateSearchRowState();
+    input.focus();
+    render();
+  });
+}
+
+function setupCoverFileInput(){
+  const input = document.getElementById('coverFileInput');
+  input.addEventListener('change', async ()=>{
+    if(!pendingCoverTarget || !input.files || !input.files[0]) return;
+    const { catId, key, itemId } = pendingCoverTarget;
+    try{
+      const dataUrl = await readAndResizeImage(input.files[0]);
+      const item = state[catId][key].find(it => it.id === itemId);
+      if(item){
+        item.cover = dataUrl;
+        await saveData();
+        render();
+      }
+    }catch(err){
+      console.error('Kunne ikke sette bilde:', err);
+    }
+    input.value = '';
+    pendingCoverTarget = null;
+  });
+}
+
+async function init(){
+  await loadData();
+  document.getElementById('subtitle').textContent =
+    'Bøker, filmer, serier, spill og aktiviteter – Vi liker, Jeg liker, og anbefalinger, lagret automatisk.';
+  setupSearchInput();
+  setupCoverFileInput();
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
